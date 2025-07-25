@@ -10,9 +10,16 @@ struct ChatRoomFeature {
         var messageInput: String = ""
         var isLoading = false
         var isSendingMessage = false
+        var isGeneratingImage = false
         var errorMessage: String?
         var showingBotSelection = false
         var availableBotTypes: [BotType] = BotType.allCases
+        var generatedImageUrl: String?
+        
+        var isUserPremium: Bool {
+            // AuthFeature에서 사용자 정보 확인 필요, 임시로 true
+            return true
+        }
     }
     
     enum Action {
@@ -29,6 +36,11 @@ struct ChatRoomFeature {
         case botTypeSelected(BotType)
         case botUpdateResponse(Result<BotSettingsResponse, Error>)
         case dismissBotSelection
+        case generateImageTapped
+        case imageGenerationResponse(Result<ImageGenerationResponse, Error>)
+        case startTypingAnimation(String) // messageId
+        case typingAnimationTick(String)  // messageId
+        case completeTypingAnimation(String) // messageId
     }
     
     @Dependency(\.apiClient) var apiClient
@@ -127,12 +139,18 @@ struct ChatRoomFeature {
                     state.messages[tempIndex] = response.userMessage
                 }
                 
-                // 봇 메시지만 추가
-                state.messages.append(response.botMessage)
+                // 봇 메시지를 타이핑 상태로 추가
+                var botMessage = response.botMessage
+                botMessage.isTyping = true
+                botMessage.displayedContent = ""
+                botMessage.isTypingComplete = false
+                state.messages.append(botMessage)
                 
                 // 메시지를 시간순으로 정렬
                 state.messages.sort { $0.createdAt < $1.createdAt }
-                return .none
+                
+                // 타이핑 애니메이션 시작
+                return .send(.startTypingAnimation(response.botMessage.id))
                 
             case let .sendMessageResponse(.failure(error)):
                 state.isSendingMessage = false
@@ -174,7 +192,111 @@ struct ChatRoomFeature {
             case .dismissBotSelection:
                 state.showingBotSelection = false
                 return .none
+                
+            case .generateImageTapped:
+                guard let chatRoomId = state.chatRoom?.id else {
+                    state.errorMessage = "채팅방 정보를 찾을 수 없습니다."
+                    return .none
+                }
+                
+                state.isGeneratingImage = true
+                state.errorMessage = nil
+                
+                return .run { send in
+                    do {
+                        let response = try await apiClient.generateImage(chatRoomId)
+                        await send(.imageGenerationResponse(.success(response)))
+                    } catch {
+                        await send(.imageGenerationResponse(.failure(error)))
+                    }
+                }
+                
+            case let .imageGenerationResponse(.success(response)):
+                state.isGeneratingImage = false
+                if response.success, let imageUrl = response.imageUrl, !imageUrl.isEmpty {
+                    state.generatedImageUrl = imageUrl
+                } else if !response.success {
+                    state.errorMessage = response.message
+                }
+                return .none
+                
+            case let .imageGenerationResponse(.failure(error)):
+                state.isGeneratingImage = false
+                if let apiError = error as? APIError {
+                    switch apiError.code {
+                    case 403:
+                        state.errorMessage = "프리미엄 사용자만 이용 가능합니다."
+                    default:
+                        state.errorMessage = apiError.message
+                    }
+                } else {
+                    state.errorMessage = "이미지 생성에 실패했습니다."
+                }
+                return .none
+                
+            case let .startTypingAnimation(messageId):
+                guard let messageIndex = state.messages.firstIndex(where: { $0.id == messageId }) else {
+                    return .none
+                }
+                
+                state.messages[messageIndex].isTyping = true
+                state.messages[messageIndex].displayedContent = ""
+                
+                return .run { send in
+                    try await Task.sleep(nanoseconds: 200_000_000) // 0.5초 대기
+                    await send(.typingAnimationTick(messageId))
+                }
+                
+            case let .typingAnimationTick(messageId):
+                guard let messageIndex = state.messages.firstIndex(where: { $0.id == messageId }) else {
+                    return .none
+                }
+                
+                let message = state.messages[messageIndex]
+                let fullContent = message.content
+                let currentDisplayed = message.displayedContent
+                
+                if currentDisplayed.count >= fullContent.count {
+                    // 타이핑 완료
+                    return .send(.completeTypingAnimation(messageId))
+                }
+                
+                // 다음 문자 추가
+                let nextIndex = fullContent.index(fullContent.startIndex, offsetBy: currentDisplayed.count + 1)
+                state.messages[messageIndex].displayedContent = String(fullContent[..<nextIndex])
+                
+                return .run { send in
+                    // 한글은 느리게, 영어/특수문자는 빠르게
+                    let nextChar = fullContent[fullContent.index(fullContent.startIndex, offsetBy: currentDisplayed.count)]
+                    let delay: UInt64 = nextChar.isKorean ? 100_000_000 : 50_000_000 // 0.1초 or 0.05초
+                    
+                    try await Task.sleep(nanoseconds: delay)
+                    await send(.typingAnimationTick(messageId))
+                }
+                
+            case let .completeTypingAnimation(messageId):
+                guard let messageIndex = state.messages.firstIndex(where: { $0.id == messageId }) else {
+                    return .none
+                }
+                
+                state.messages[messageIndex].isTyping = false
+                state.messages[messageIndex].isTypingComplete = true
+                state.messages[messageIndex].displayedContent = state.messages[messageIndex].content
+                
+                return .none
             }
         }
+    }
+}
+
+// Character 확장으로 한글 판별
+extension Character {
+    var isKorean: Bool {
+        guard let unicodeScalar = self.unicodeScalars.first else { return false }
+        let value = unicodeScalar.value
+        return (0xAC00...0xD7AF).contains(value) || // 한글 완성형
+               (0x1100...0x11FF).contains(value) || // 한글 자음
+               (0x3130...0x318F).contains(value) || // 한글 호환 자모
+               (0xA960...0xA97F).contains(value)    // 한글 확장 자모
     }
 }

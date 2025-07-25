@@ -14,6 +14,7 @@ struct APIClient {
     var sendMessage: @Sendable (String, String) async throws -> SendMessageResponse
     var getChatRoomsByMonth: @Sendable (String) async throws -> ChatRoomListResponse
     var getChatRoomById: @Sendable (String) async throws -> ChatRoomResponse
+    var generateImage: @Sendable (String) async throws -> ImageGenerationResponse
 }
 
 // 현재 토큰을 가져오는 dependency
@@ -217,6 +218,35 @@ extension APIClient: DependencyKey {
                 }
                 
                 return try JSONDecoder().decode(ChatRoomResponse.self, from: data)
+            },
+            
+            generateImage: { roomId in
+                @Dependency(\.currentToken) var currentToken
+                let request = try createRequest(
+                    baseURL: baseURL,
+                    endpoint: "/chat/rooms/today/messages/generate-image",
+                    method: "POST",
+                    token: currentToken()
+                )
+                
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    switch httpResponse.statusCode {
+                    case 200:
+                        return try JSONDecoder().decode(ImageGenerationResponse.self, from: data)
+                    case 404:
+                        throw APIError(message: "채팅룸을 찾을 수 없습니다.", code: 404)
+                    case 401:
+                        throw APIError.unauthorized
+                    case 403:
+                        throw APIError(message: "프리미엄 사용자만 이용 가능합니다.", code: 403)
+                    default:
+                        throw APIError(message: "이미지 생성에 실패했습니다.", code: httpResponse.statusCode)
+                    }
+                }
+                
+                return try JSONDecoder().decode(ImageGenerationResponse.self, from: data)
             }
         )
     }()

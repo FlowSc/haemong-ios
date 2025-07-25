@@ -7,6 +7,7 @@ struct User: Codable, Equatable, Identifiable {
     let name: String?
     let profileImage: String?
     let provider: AuthProvider
+    let isPremium: Bool?
     let createdAt: String
     let updatedAt: String
 }
@@ -115,6 +116,16 @@ struct Message: Codable, Equatable, Identifiable {
     var messageType: MessageType { .text }
     var imageUrl: String? { nil }
     var videoUrl: String? { nil }
+    
+    // 타이핑 애니메이션 관련 (로컬 상태)
+    var isTyping: Bool = false
+    var displayedContent: String = ""
+    var isTypingComplete: Bool = false
+    
+    // Codable에서 제외할 프로퍼티들
+    private enum CodingKeys: String, CodingKey {
+        case id, chatRoomId, type, content, createdAt
+    }
 }
 
 enum MessageSender: String, Codable {
@@ -163,6 +174,13 @@ struct SendMessageResponse: Codable, Equatable {
 struct BotSettingsResponse: Codable, Equatable {
     let botSettings: BotSettings
     let message: String
+}
+
+struct ImageGenerationResponse: Codable, Equatable {
+    let success: Bool
+    let imageUrl: String?
+    let message: String
+    let isPremium: Bool
 }
 
 // Remove old DreamRecord response models since we're using ChatRoom structure

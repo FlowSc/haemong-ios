@@ -75,13 +75,29 @@ struct ChatRoomView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(store.messages) { message in
-                        MessageBubbleView(message: message)
-                            .id(message.id)
+                    ForEach(Array(store.messages.enumerated()), id: \.element.id) { index, message in
+                        VStack(spacing: 8) {
+                            MessageBubbleView(message: message)
+                            
+                            // 가장 최근 봇 메시지 하단에 이미지 생성 버튼 표시 (타이핑 완료 후)
+                            if index == store.messages.count - 1 && 
+                               message.sender == .bot && 
+                               store.isUserPremium &&
+                               !store.isSendingMessage &&
+                               (!message.isTyping || message.isTypingComplete) {
+                                imageGenerationButton
+                            }
+                        }
+                        .id(message.id)
                     }
                     
                     if store.isSendingMessage {
                         sendingIndicator
+                    }
+                    
+                    // 생성된 이미지 표시
+                    if let imageUrl = store.generatedImageUrl {
+                        generatedImageView(imageUrl: imageUrl)
                     }
                     
                     bottomSpacer
@@ -169,6 +185,92 @@ struct ChatRoomView: View {
             }
         }
     }
+    
+    private var imageGenerationButton: some View {
+        HStack {
+            Spacer()
+            
+            Button(action: {
+                store.send(.generateImageTapped)
+            }) {
+                HStack(spacing: 8) {
+                    if store.isGeneratingImage {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    } else {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.system(size: 14))
+                    }
+                    
+                    Text(store.isGeneratingImage ? "이미지 생성 중..." : "꿈 이미지 생성")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    LinearGradient(
+                        colors: [Color.purple, Color.blue],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(Capsule())
+                .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
+            }
+            .disabled(store.isGeneratingImage)
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal)
+    }
+    
+    private func generatedImageView(imageUrl: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.purple)
+                    .font(.caption)
+                Text("AI가 생성한 꿈 이미지")
+                    .font(.caption)
+                    .foregroundColor(.purple)
+                    .fontWeight(.medium)
+                Spacer()
+                
+                Button("✕") {
+                    // 이미지 닫기 액션 (나중에 구현)
+                }
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            }
+            
+            AsyncImage(url: URL(string: imageUrl)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 200)
+                    .overlay(
+                        ProgressView()
+                    )
+            }
+            .frame(maxWidth: 300, maxHeight: 300)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.purple.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal)
+    }
 }
 
 struct MessageBubbleView: View {
@@ -186,11 +288,20 @@ struct MessageBubbleView: View {
                     .frame(maxWidth: .infinity * 0.7, alignment: .trailing)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(message.content)
-                        .padding(12)
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    // 봇 메시지 버블
+                    HStack {
+                        Text(displayedText)
+                            .padding(12)
+                            .background(Color.gray.opacity(0.2))
+                            .foregroundColor(.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .animation(.none, value: displayedText) // 텍스트 변화 애니메이션 제거
+                        
+                        // 타이핑 인디케이터
+                        if message.isTyping && !message.isTypingComplete {
+                            typingIndicator
+                        }
+                    }
                     
                     if let imageUrl = message.imageUrl, !imageUrl.isEmpty {
                         AsyncImage(url: URL(string: imageUrl)) { image in
@@ -213,6 +324,41 @@ struct MessageBubbleView: View {
                 Spacer()
             }
         }
+    }
+    
+    private var displayedText: String {
+        if message.sender == .bot && message.isTyping {
+            return message.displayedContent
+        } else {
+            return message.content
+        }
+    }
+    
+    private var typingIndicator: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(Color.gray)
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(typingScale)
+                    .animation(
+                        Animation.easeInOut(duration: 0.6)
+                            .repeatForever()
+                            .delay(Double(index) * 0.2),
+                        value: typingScale
+                    )
+            }
+        }
+        .padding(.horizontal, 8)
+        .onAppear {
+            startTypingAnimation()
+        }
+    }
+    
+    @State private var typingScale: CGFloat = 0.5
+    
+    private func startTypingAnimation() {
+        typingScale = 1.0
     }
 }
 
