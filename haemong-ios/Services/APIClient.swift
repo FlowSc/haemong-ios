@@ -12,6 +12,8 @@ struct APIClient {
     var updateBotSettings: @Sendable (String, BotType) async throws -> Void
     var getMessages: @Sendable (String) async throws -> [Message]
     var sendMessage: @Sendable (String, String) async throws -> SendMessageResponse
+    var getChatRoomsByMonth: @Sendable (String) async throws -> ChatRoomListResponse
+    var getChatRoomById: @Sendable (String) async throws -> ChatRoomResponse
 }
 
 // 현재 토큰을 가져오는 dependency
@@ -175,6 +177,46 @@ extension APIClient: DependencyKey {
                 
                 let (data, _) = try await URLSession.shared.data(for: request)
                 return try JSONDecoder().decode(SendMessageResponse.self, from: data)
+            },
+            
+            getChatRoomsByMonth: { monthString in
+                @Dependency(\.currentToken) var currentToken
+                let request = try createRequest(
+                    baseURL: baseURL,
+                    endpoint: "/chat/rooms?month=\(monthString)",
+                    method: "GET",
+                    token: currentToken()
+                )
+                
+                let (data, _) = try await URLSession.shared.data(for: request)
+                return try JSONDecoder().decode(ChatRoomListResponse.self, from: data)
+            },
+            
+            getChatRoomById: { roomId in
+                @Dependency(\.currentToken) var currentToken
+                let request = try createRequest(
+                    baseURL: baseURL,
+                    endpoint: "/chat/rooms/\(roomId)",
+                    method: "GET",
+                    token: currentToken()
+                )
+                
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    switch httpResponse.statusCode {
+                    case 200:
+                        return try JSONDecoder().decode(ChatRoomResponse.self, from: data)
+                    case 404:
+                        throw APIError(message: "해당 채팅룸을 찾을 수 없습니다.", code: 404)
+                    case 401:
+                        throw APIError.unauthorized
+                    default:
+                        throw APIError(message: "서버 오류가 발생했습니다.", code: httpResponse.statusCode)
+                    }
+                }
+                
+                return try JSONDecoder().decode(ChatRoomResponse.self, from: data)
             }
         )
     }()

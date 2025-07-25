@@ -89,28 +89,21 @@ struct ChatRoomView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
             }
+            .defaultScrollAnchor(.bottom)
             .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    scrollToBottom(proxy: proxy)
-                }
+                scrollToBottomAsync(proxy: proxy, delay: 0.3)
             }
             .onChange(of: store.messages.count) { _, _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    scrollToBottomWithAnimation(proxy: proxy)
-                }
+                scrollToBottomAsync(proxy: proxy, delay: 0.2, animated: true)
             }
             .onChange(of: store.chatRoom) { _, chatRoom in
                 if chatRoom != nil && !store.messages.isEmpty {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        scrollToBottom(proxy: proxy)
-                    }
+                    scrollToBottomAsync(proxy: proxy, delay: 0.4)
                 }
             }
             .onChange(of: store.isSendingMessage) { _, isSending in
                 if isSending {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        scrollToBottomWithAnimation(proxy: proxy)
-                    }
+                    scrollToBottomAsync(proxy: proxy, delay: 0.1, animated: true)
                 }
             }
         }
@@ -138,7 +131,9 @@ struct ChatRoomView: View {
     private var messageInputView: some View {
         MessageInputView(
             text: $store.messageInput.sending(\.messageInputChanged),
-            onSend: { store.send(.sendMessageTapped) },
+            onSend: { 
+                store.send(.sendMessageTapped)
+            },
             isDisabled: store.isSendingMessage
         )
     }
@@ -151,6 +146,27 @@ struct ChatRoomView: View {
     private func scrollToBottomWithAnimation(proxy: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.3)) {
             proxy.scrollTo("bottom-spacer", anchor: .bottom)
+        }
+    }
+    
+    private func scrollToBottomAsync(proxy: ScrollViewProxy, delay: TimeInterval, animated: Bool = false) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            // 여러 번 시도하여 확실하게 스크롤
+            if animated {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    proxy.scrollTo("bottom-spacer", anchor: .bottom)
+                }
+                // 애니메이션 후 한 번 더 확인
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    proxy.scrollTo("bottom-spacer", anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo("bottom-spacer", anchor: .bottom)
+                // 즉시 한 번 더 확인
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    proxy.scrollTo("bottom-spacer", anchor: .bottom)
+                }
+            }
         }
     }
 }
@@ -204,6 +220,7 @@ struct MessageInputView: View {
     @Binding var text: String
     let onSend: () -> Void
     let isDisabled: Bool
+    @FocusState private var isTextFieldFocused: Bool
     
     var body: some View {
         HStack(spacing: 12) {
@@ -211,8 +228,17 @@ struct MessageInputView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .lineLimit(1...4)
                 .disabled(isDisabled)
+                .focused($isTextFieldFocused)
+                .onSubmit {
+                    if canSend && !isDisabled {
+                        onSend()
+                    }
+                }
             
-            Button(action: onSend) {
+            Button(action: {
+                onSend()
+                isTextFieldFocused = false
+            }) {
                 Image(systemName: "paperplane.fill")
                     .foregroundColor(canSend ? .blue : .gray)
             }

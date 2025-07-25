@@ -9,7 +9,8 @@
       "Bash(ls:*)",
       "Bash(xed:*)",
       "Bash(killall:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

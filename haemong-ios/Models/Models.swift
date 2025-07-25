@@ -128,6 +128,21 @@ enum MessageType: String, Codable {
     case video = "video"
 }
 
+// MARK: - Dream Record Models (using ChatRoom structure)
+struct ChatRoomListResponse: Codable, Equatable {
+    let chatRooms: [ChatRoom]
+}
+
+extension ChatRoom {
+    var dateString: String {
+        return date // Already in "YYYY-MM-DD" format
+    }
+    
+    var hasRecord: Bool {
+        return isActive
+    }
+}
+
 // MARK: - API Response Models
 struct AuthResponse: Codable, Equatable {
     let user: User
@@ -149,6 +164,8 @@ struct BotSettingsResponse: Codable, Equatable {
     let botSettings: BotSettings
     let message: String
 }
+
+// Remove old DreamRecord response models since we're using ChatRoom structure
 
 struct APIError: Error, Equatable {
     let message: String

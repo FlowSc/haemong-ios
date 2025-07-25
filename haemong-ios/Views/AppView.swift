@@ -79,31 +79,38 @@ struct MainTabView: View {
     @Bindable var store: StoreOf<AppFeature>
     
     var body: some View {
-        TabView(selection: $store.selectedTab.sending(\.tabSelected)) {
-            HomeView(
-                store: Store(initialState: HomeFeature.State()) {
-                    HomeFeature()
+        NavigationStack(path: $store.scope(state: \.path, action: \.path)) {
+            TabView(selection: $store.selectedTab.sending(\.tabSelected)) {
+                HomeView(
+                    store: store.scope(state: \.home, action: \.home)
+                )
+                .tabItem {
+                    Image(systemName: AppFeature.State.Tab.home.systemImage)
+                    Text(AppFeature.State.Tab.home.title)
                 }
-            )
-            .tabItem {
-                Image(systemName: AppFeature.State.Tab.home.systemImage)
-                Text(AppFeature.State.Tab.home.title)
+                .tag(AppFeature.State.Tab.home)
+                
+                CommunityView()
+                .tabItem {
+                    Image(systemName: AppFeature.State.Tab.community.systemImage)
+                    Text(AppFeature.State.Tab.community.title)
+                }
+                .tag(AppFeature.State.Tab.community)
+                
+                ProfileView(store: store)
+                .tabItem {
+                    Image(systemName: AppFeature.State.Tab.profile.systemImage)
+                    Text(AppFeature.State.Tab.profile.title)
+                }
+                .tag(AppFeature.State.Tab.profile)
             }
-            .tag(AppFeature.State.Tab.home)
-            
-            CommunityView()
-            .tabItem {
-                Image(systemName: AppFeature.State.Tab.community.systemImage)
-                Text(AppFeature.State.Tab.community.title)
+        } destination: { store in
+            switch store.case {
+            case let .chatRoom(chatRoomStore):
+                ChatRoomView(store: chatRoomStore)
+            case let .botSettings(botSettingsStore):
+                BotSettingsView(store: botSettingsStore)
             }
-            .tag(AppFeature.State.Tab.community)
-            
-            ProfileView(store: store)
-            .tabItem {
-                Image(systemName: AppFeature.State.Tab.profile.systemImage)
-                Text(AppFeature.State.Tab.profile.title)
-            }
-            .tag(AppFeature.State.Tab.profile)
         }
     }
 }

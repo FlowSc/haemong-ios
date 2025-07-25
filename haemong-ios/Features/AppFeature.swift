@@ -13,6 +13,7 @@ struct AppFeature {
     struct State: Equatable {
         var auth = AuthFeature.State()
         var login = LoginFeature.State()
+        var home = HomeFeature.State()
         var selectedTab: Tab = .home
         var path = StackState<Path.State>()
         var appLaunchState: AppLaunchState = .launching
@@ -50,10 +51,12 @@ struct AppFeature {
         case onAppear
         case auth(AuthFeature.Action)
         case login(LoginFeature.Action)
+        case home(HomeFeature.Action)
         case tabSelected(State.Tab)
         case path(StackAction<Path.State, Path.Action>)
         case profileLogoutTapped
         case launchCompleted
+        case navigateToChatRoom
     }
     
     var body: some ReducerOf<Self> {
@@ -63,6 +66,10 @@ struct AppFeature {
         
         Scope(state: \.login, action: \.login) {
             LoginFeature()
+        }
+        
+        Scope(state: \.home, action: \.home) {
+            HomeFeature()
         }
         
         Reduce { state, action in
@@ -118,8 +125,12 @@ struct AppFeature {
                 
             case .profileLogoutTapped:
                 return .send(.auth(.logout))
-                
-            case .auth, .login, .path:
+            case .navigateToChatRoom:
+                state.path.append(.chatRoom(ChatRoomFeature.State()))
+                return .none
+            case .home(.todaysDreamButtonTapped):
+                return .send(.navigateToChatRoom)
+            case .auth, .login, .home, .path:
                 return .none
             }
         }
