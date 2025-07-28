@@ -110,11 +110,11 @@ struct Message: Codable, Equatable, Identifiable {
     let type: MessageSender
     let content: String
     let createdAt: String
+    let imageUrl: String?
     
     // Legacy support
     var sender: MessageSender { type }
-    var messageType: MessageType { .text }
-    var imageUrl: String? { nil }
+    var messageType: MessageType { imageUrl != nil ? .image : .text }
     var videoUrl: String? { nil }
     
     // 타이핑 애니메이션 관련 (로컬 상태)
@@ -124,7 +124,7 @@ struct Message: Codable, Equatable, Identifiable {
     
     // Codable에서 제외할 프로퍼티들
     private enum CodingKeys: String, CodingKey {
-        case id, chatRoomId, type, content, createdAt
+        case id, chatRoomId, type, content, createdAt, imageUrl
     }
 }
 

@@ -118,7 +118,7 @@ struct ChatRoomFeature {
                     chatRoomId: chatRoom.id,
                     type: .user,
                     content: messageContent,
-                    createdAt: ISO8601DateFormatter().string(from: Date())
+                    createdAt: ISO8601DateFormatter().string(from: Date()), imageUrl: nil
                 )
                 state.messages.append(tempUserMessage)
                 
@@ -199,23 +199,60 @@ struct ChatRoomFeature {
                     return .none
                 }
                 
+                print("🎨 generateImageTapped - chatRoomId: \(chatRoomId)")
                 state.isGeneratingImage = true
                 state.errorMessage = nil
                 
                 return .run { send in
                     do {
+                        print("🎨 Calling apiClient.generateImage...")
                         let response = try await apiClient.generateImage(chatRoomId)
+                        print("🎨 API response received")
                         await send(.imageGenerationResponse(.success(response)))
                     } catch {
+                        print("❌ Image generation API error: \(error)")
                         await send(.imageGenerationResponse(.failure(error)))
                     }
                 }
                 
             case let .imageGenerationResponse(.success(response)):
+                print("🎨 imageGenerationResponse received:")
+                print("  - success: \(response.success)")
+                print("  - message: \(response.message)")
+                print("  - imageUrl: \(response.imageUrl ?? "nil")")
+                
                 state.isGeneratingImage = false
                 if response.success, let imageUrl = response.imageUrl, !imageUrl.isEmpty {
                     state.generatedImageUrl = imageUrl
+                    print("🎨 Image URL saved to state: \(imageUrl)")
+                    
+                    // 이미지 메시지를 봇 메시지로 추가
+                    guard let chatRoom = state.chatRoom else { 
+                        print("❌ No chatRoom found in state")
+                        return .none 
+                    }
+                    let imageMessage = Message(
+                        id: UUID().uuidString,
+                        chatRoomId: chatRoom.id,
+                        type: .bot,
+                        content: response.message,
+                        createdAt: ISO8601DateFormatter().string(from: Date()),
+                        imageUrl: imageUrl
+                    )
+                    print("🎨 Creating image message:")
+                    print("  - id: \(imageMessage.id)")
+                    print("  - content: \(imageMessage.content)")
+                    print("  - imageUrl: \(imageMessage.imageUrl ?? "nil")")
+                    print("  - createdAt: \(imageMessage.createdAt)")
+                    
+                    // 새로운 배열로 교체하여 확실한 상태 변경 트리거
+                    var updatedMessages = state.messages
+                    updatedMessages.append(imageMessage)
+                    updatedMessages.sort { $0.createdAt < $1.createdAt }
+                    state.messages = updatedMessages
+                    print("✅ Image message added to messages array. Total messages: \(state.messages.count)")
                 } else if !response.success {
+                    print("❌ Image generation failed: \(response.message)")
                     state.errorMessage = response.message
                 }
                 return .none
@@ -243,7 +280,7 @@ struct ChatRoomFeature {
                 state.messages[messageIndex].displayedContent = ""
                 
                 return .run { send in
-                    try await Task.sleep(nanoseconds: 200_000_000) // 0.5초 대기
+                    try await Task.sleep(nanoseconds: 50_000_000) // 0.5초 대기
                     await send(.typingAnimationTick(messageId))
                 }
                 
@@ -268,7 +305,7 @@ struct ChatRoomFeature {
                 return .run { send in
                     // 한글은 느리게, 영어/특수문자는 빠르게
                     let nextChar = fullContent[fullContent.index(fullContent.startIndex, offsetBy: currentDisplayed.count)]
-                    let delay: UInt64 = nextChar.isKorean ? 100_000_000 : 50_000_000 // 0.1초 or 0.05초
+                    let delay: UInt64 = nextChar.isKorean ? 50_000_000 : 20_000_000 // 0.1초 or 0.05초
                     
                     try await Task.sleep(nanoseconds: delay)
                     await send(.typingAnimationTick(messageId))

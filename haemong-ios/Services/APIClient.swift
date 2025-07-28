@@ -233,7 +233,7 @@ extension APIClient: DependencyKey {
                 
                 if let httpResponse = response as? HTTPURLResponse {
                     switch httpResponse.statusCode {
-                    case 200:
+                    case 200, 201:
                         return try JSONDecoder().decode(ImageGenerationResponse.self, from: data)
                     case 404:
                         throw APIError(message: "채팅룸을 찾을 수 없습니다.", code: 404)

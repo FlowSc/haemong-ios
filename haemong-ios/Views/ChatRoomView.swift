@@ -1,5 +1,6 @@
 import SwiftUI
 import ComposableArchitecture
+import Kingfisher
 
 struct ChatRoomView: View {
     @Bindable var store: StoreOf<ChatRoomFeature>
@@ -75,13 +76,15 @@ struct ChatRoomView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
+                    let _ = print("🔄 MessagesScrollView: Rendering \(store.messages.count) messages")
                     ForEach(Array(store.messages.enumerated()), id: \.element.id) { index, message in
                         VStack(spacing: 8) {
                             MessageBubbleView(message: message)
                             
-                            // 가장 최근 봇 메시지 하단에 이미지 생성 버튼 표시 (타이핑 완료 후)
+                            // 가장 최근 봇 메시지 하단에 이미지 생성 버튼 표시 (타이핑 완료 후, 이미지가 없는 메시지만)
                             if index == store.messages.count - 1 && 
                                message.sender == .bot && 
+                               message.imageUrl == nil &&
                                store.isUserPremium &&
                                !store.isSendingMessage &&
                                (!message.isTyping || message.isTypingComplete) {
@@ -93,11 +96,6 @@ struct ChatRoomView: View {
                     
                     if store.isSendingMessage {
                         sendingIndicator
-                    }
-                    
-                    // 생성된 이미지 표시
-                    if let imageUrl = store.generatedImageUrl {
-                        generatedImageView(imageUrl: imageUrl)
                     }
                     
                     bottomSpacer
@@ -120,6 +118,12 @@ struct ChatRoomView: View {
             .onChange(of: store.isSendingMessage) { _, isSending in
                 if isSending {
                     scrollToBottomAsync(proxy: proxy, delay: 0.1, animated: true)
+                }
+            }
+            .onChange(of: store.isGeneratingImage) { _, isGenerating in
+                if !isGenerating {
+                    // 이미지 생성 완료 후 스크롤
+                    scrollToBottomAsync(proxy: proxy, delay: 0.3, animated: true)
                 }
             }
         }
@@ -226,57 +230,13 @@ struct ChatRoomView: View {
         .padding(.horizontal)
     }
     
-    private func generatedImageView(imageUrl: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "sparkles")
-                    .foregroundColor(.purple)
-                    .font(.caption)
-                Text("AI가 생성한 꿈 이미지")
-                    .font(.caption)
-                    .foregroundColor(.purple)
-                    .fontWeight(.medium)
-                Spacer()
-                
-                Button("✕") {
-                    // 이미지 닫기 액션 (나중에 구현)
-                }
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            }
-            
-            AsyncImage(url: URL(string: imageUrl)) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            } placeholder: {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 200)
-                    .overlay(
-                        ProgressView()
-                    )
-            }
-            .frame(maxWidth: 300, maxHeight: 300)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.purple.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.purple.opacity(0.3), lineWidth: 1)
-                )
-        )
-        .padding(.horizontal)
-    }
 }
 
 struct MessageBubbleView: View {
     let message: Message
     
     var body: some View {
+        let _ = print("📩 MessageBubbleView: Rendering message \(message.id), sender: \(message.sender), hasImage: \(message.imageUrl != nil)")
         HStack {
             if message.sender == .user {
                 Spacer()
@@ -304,19 +264,43 @@ struct MessageBubbleView: View {
                     }
                     
                     if let imageUrl = message.imageUrl, !imageUrl.isEmpty {
-                        AsyncImage(url: URL(string: imageUrl)) { image in
-                            image
+                        let _ = print("🖼️ MessageBubbleView: Rendering image for message \(message.id)")
+                        let _ = print("🖼️ Image URL: \(imageUrl)")
+                        
+                        // 이미지 컨테이너 - 고정 크기로 레이아웃 안정성 확보
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Kingfisher를 사용한 이미지 로딩
+                            KFImage(URL(string: imageUrl))
+                                .placeholder {
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .overlay(
+                                            VStack(spacing: 8) {
+                                                ProgressView()
+                                                Text("이미지 로딩 중...")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        )
+                                }
+                                .retry(maxCount: 3)
+                                .onFailure { error in
+                                    print("🚫 Kingfisher image loading failed: \(error)")
+                                }
+                                .onSuccess { result in
+                                    print("✅ Kingfisher image loaded successfully: \(result.source.url?.absoluteString ?? "")")
+                                }
+                                .fade(duration: 0.25)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                        } placeholder: {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(height: 200)
-                                .overlay(
-                                    ProgressView()
-                                )
+                                .onTapGesture {
+                                    // 이미지를 탭하면 브라우저에서 열기 (디버깅용)
+                                    if let url = URL(string: imageUrl), UIApplication.shared.canOpenURL(url) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
                         }
-                        .frame(maxWidth: 250, maxHeight: 250)
+                        .frame(width: 250, height: 250) // 고정 크기
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }

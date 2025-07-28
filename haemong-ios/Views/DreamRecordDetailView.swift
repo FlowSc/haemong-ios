@@ -159,14 +159,16 @@ struct ChatMessageCard: View {
                 chatRoomId: "1",
                 type: .user,
                 content: "높은 산을 오르는 꿈을 꾸었습니다.",
-                createdAt: "2025-07-25T10:30:00.000Z"
+                createdAt: "2025-07-25T10:30:00.000Z",
+                imageUrl: nil
             ),
             Message(
                 id: "2", 
                 chatRoomId: "1",
                 type: .bot,
                 content: "산을 오르는 꿈은 목표 달성과 성공을 의미합니다.",
-                createdAt: "2025-07-25T10:31:00.000Z"
+                createdAt: "2025-07-25T10:31:00.000Z",
+                imageUrl: nil
             )
         ],
         selectedDate: Date()

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		75A0ABDE2E335EC300BBF2A9 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 75A0ABDD2E335EC300BBF2A9 /* ComposableArchitecture */; };
+		75DDAEB82E373396003DEADE /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 75DDAEB72E373396003DEADE /* Kingfisher */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,9 +34,22 @@
 		75A0ABC92E335EA900BBF2A9 /* haemong-iosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "haemong-iosUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		75DDAEB52E3731A7003DEADE /* Exceptions for "haemong-ios" folder in "haemong-ios" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 75A0ABB12E335EA700BBF2A9 /* haemong-ios */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		75A0ABB42E335EA700BBF2A9 /* haemong-ios */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				75DDAEB52E3731A7003DEADE /* Exceptions for "haemong-ios" folder in "haemong-ios" target */,
+			);
 			path = "haemong-ios";
 			sourceTree = "<group>";
 		};
@@ -56,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				75DDAEB82E373396003DEADE /* Kingfisher in Frameworks */,
 				75A0ABDE2E335EC300BBF2A9 /* ComposableArchitecture in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +133,7 @@
 			name = "haemong-ios";
 			packageProductDependencies = (
 				75A0ABDD2E335EC300BBF2A9 /* ComposableArchitecture */,
+				75DDAEB72E373396003DEADE /* Kingfisher */,
 			);
 			productName = "haemong-ios";
 			productReference = 75A0ABB22E335EA700BBF2A9 /* haemong-ios.app */;
@@ -203,6 +219,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				75A0ABDC2E335EC300BBF2A9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				75DDAEB62E373396003DEADE /* XCRemoteSwiftPackageReference "Kingfisher" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 75A0ABB32E335EA700BBF2A9 /* Products */;
@@ -409,6 +426,7 @@
 				DEVELOPMENT_TEAM = S36JVGF378;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "haemong-ios/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -437,6 +455,7 @@
 				DEVELOPMENT_TEAM = S36JVGF378;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "haemong-ios/Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -577,6 +596,14 @@
 				minimumVersion = 1.20.2;
 			};
 		};
+		75DDAEB62E373396003DEADE /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -584,6 +611,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 75A0ABDC2E335EC300BBF2A9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
 			productName = ComposableArchitecture;
+		};
+		75DDAEB72E373396003DEADE /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 75DDAEB62E373396003DEADE /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

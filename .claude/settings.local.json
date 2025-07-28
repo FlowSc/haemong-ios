@@ -11,7 +11,11 @@
       "Bash(killall:*)",
       "Bash(true)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git restore:*)",
+      "Bash(xcrun simctl shutdown:*)",
+      "Bash(xcrun simctl boot:*)",
+      "Bash(xcrun simctl erase:*)"
     ],
     "deny": []
   }
