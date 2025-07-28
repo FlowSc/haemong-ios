@@ -55,18 +55,18 @@ struct ChatRoomInfoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: chatRoom.botSettings.botType.iconName)
-                    .foregroundColor(.blue)
-                    .font(.title2)
+//                Image(systemName: chatRoom.botSettings.botType.iconName)
+//                    .foregroundColor(.blue)
+//                    .font(.title2)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(chatRoom.title)
                         .font(.headline)
                         .fontWeight(.semibold)
                     
-                    Text(chatRoom.botSettings.botType.displayName)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+//                    Text(chatRoom.botSettings.botType.displayName)
+//                        .font(.subheadline)
+//                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -148,7 +148,7 @@ struct ChatMessageCard: View {
             userId: "user1", 
             title: "2025-07-25 꿈 해몽",
             date: "2025-07-25",
-            botSettings: BotSettings(gender: "female", style: "eastern"),
+//            botSettings: BotSettings(gender: "female", style: "eastern"),
             isActive: true,
             createdAt: "2025-07-25T10:30:00.000Z",
             updatedAt: "2025-07-25T10:30:00.000Z"
@@ -160,7 +160,7 @@ struct ChatMessageCard: View {
                 type: .user,
                 content: "높은 산을 오르는 꿈을 꾸었습니다.",
                 createdAt: "2025-07-25T10:30:00.000Z",
-                imageUrl: nil
+                imageUrl: nil, interpretation: false
             ),
             Message(
                 id: "2", 
@@ -168,7 +168,7 @@ struct ChatMessageCard: View {
                 type: .bot,
                 content: "산을 오르는 꿈은 목표 달성과 성공을 의미합니다.",
                 createdAt: "2025-07-25T10:31:00.000Z",
-                imageUrl: nil
+                imageUrl: nil, interpretation: false
             )
         ],
         selectedDate: Date()

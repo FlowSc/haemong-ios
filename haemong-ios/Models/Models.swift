@@ -24,7 +24,7 @@ struct ChatRoom: Codable, Equatable, Identifiable {
     let userId: String
     let title: String
     let date: String
-    let botSettings: BotSettings
+//    let botSettings: BotSettings
     let isActive: Bool
     let createdAt: String
     let updatedAt: String
@@ -111,7 +111,7 @@ struct Message: Codable, Equatable, Identifiable {
     let content: String
     let createdAt: String
     let imageUrl: String?
-    
+    let interpretation: Bool
     // Legacy support
     var sender: MessageSender { type }
     var messageType: MessageType { imageUrl != nil ? .image : .text }
@@ -124,7 +124,7 @@ struct Message: Codable, Equatable, Identifiable {
     
     // Codable에서 제외할 프로퍼티들
     private enum CodingKeys: String, CodingKey {
-        case id, chatRoomId, type, content, createdAt, imageUrl
+        case id, chatRoomId, type, content, createdAt, imageUrl, interpretation
     }
 }
 

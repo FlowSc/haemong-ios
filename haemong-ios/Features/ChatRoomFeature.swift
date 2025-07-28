@@ -118,7 +118,9 @@ struct ChatRoomFeature {
                     chatRoomId: chatRoom.id,
                     type: .user,
                     content: messageContent,
-                    createdAt: ISO8601DateFormatter().string(from: Date()), imageUrl: nil
+                    createdAt: ISO8601DateFormatter().string(from: Date()),
+                    imageUrl: nil, interpretation: false
+                    
                 )
                 state.messages.append(tempUserMessage)
                 
@@ -237,7 +239,7 @@ struct ChatRoomFeature {
                         type: .bot,
                         content: response.message,
                         createdAt: ISO8601DateFormatter().string(from: Date()),
-                        imageUrl: imageUrl
+                        imageUrl: nil, interpretation: false
                     )
                     print("🎨 Creating image message:")
                     print("  - id: \(imageMessage.id)")

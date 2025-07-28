@@ -46,7 +46,7 @@ struct BotSettingsFeature {
             case let .chatRoomResponse(.success(response)):
                 state.isLoading = false
                 state.currentChatRoom = response.chatRoom
-                state.selectedBotType = response.chatRoom.botSettings.botType
+//                state.selectedBotType = response.chatRoom.botSettings.botType
                 return .none
                 
             case let .chatRoomResponse(.failure(error)):

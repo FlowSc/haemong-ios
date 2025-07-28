@@ -15,9 +15,9 @@ struct BotSettingsView: View {
                     ScrollView {
                         VStack(spacing: 24) {
                             // 현재 봇 정보
-                            if let chatRoom = store.currentChatRoom {
-                                CurrentBotInfoView(botType: chatRoom.botSettings.botType)
-                            }
+//                            if let chatRoom = store.currentChatRoom {
+//                                CurrentBotInfoView(botType: chatRoom.botSettings.botType)
+//                            }
                             
                             // 봇 타입 선택
                             BotTypeSelectionView(

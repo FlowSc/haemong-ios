@@ -15,7 +15,7 @@ struct ChatRoomView: View {
                 errorView
             }
         }
-        .navigationTitle(store.chatRoom?.botSettings.botType.displayName ?? "해몽")
+//        .navigationTitle(store.chatRoom?.botSettings.botType.displayName ?? "해몽")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -32,12 +32,12 @@ struct ChatRoomView: View {
         .onAppear {
             store.send(.onAppear)
         }
-        .sheet(isPresented: Binding(
-            get: { store.showingBotSelection },
-            set: { _ in store.send(.dismissBotSelection) }
-        )) {
-            BotSelectionView(store: store)
-        }
+//        .sheet(isPresented: Binding(
+//            get: { store.showingBotSelection },
+//            set: { _ in store.send(.dismissBotSelection) }
+//        )) {
+//            BotSelectionView(store: store)
+//        }
     }
     
     private var loadingView: some View {
@@ -87,7 +87,7 @@ struct ChatRoomView: View {
                                message.imageUrl == nil &&
                                store.isUserPremium &&
                                !store.isSendingMessage &&
-                               (!message.isTyping || message.isTypingComplete) {
+                                (!message.isTyping || message.isTypingComplete) && message.interpretation {
                                 imageGenerationButton
                             }
                         }
@@ -108,7 +108,10 @@ struct ChatRoomView: View {
                 scrollToBottomAsync(proxy: proxy, delay: 0.3)
             }
             .onChange(of: store.messages.count) { _, _ in
-                scrollToBottomAsync(proxy: proxy, delay: 0.2, animated: true)
+                // 타이핑 중이 아닐 때만 스크롤 (새 메시지 추가 시)
+                if !store.messages.contains(where: { $0.isTyping && !$0.isTypingComplete }) {
+                    scrollToBottomAsync(proxy: proxy, delay: 0.2, animated: true)
+                }
             }
             .onChange(of: store.chatRoom) { _, chatRoom in
                 if chatRoom != nil && !store.messages.isEmpty {
@@ -124,6 +127,19 @@ struct ChatRoomView: View {
                 if !isGenerating {
                     // 이미지 생성 완료 후 스크롤
                     scrollToBottomAsync(proxy: proxy, delay: 0.3, animated: true)
+                }
+            }
+            .onChange(of: store.messages.map { $0.isTypingComplete }) { oldValues, newValues in
+                // 타이핑이 방금 완료된 경우에만 스크롤 (false -> true 변화)
+                let wasTypingComplete = oldValues
+                let isTypingComplete = newValues
+                
+                for (index, (wasComplete, isComplete)) in zip(wasTypingComplete, isTypingComplete).enumerated() {
+                    if !wasComplete && isComplete && store.messages[index].sender == .bot {
+                        // 봇 메시지의 타이핑이 방금 완료됨
+                        scrollToBottomAsync(proxy: proxy, delay: 0.2, animated: true)
+                        break
+                    }
                 }
             }
         }
@@ -256,6 +272,7 @@ struct MessageBubbleView: View {
                             .foregroundColor(.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                             .animation(.none, value: displayedText) // 텍스트 변화 애니메이션 제거
+                            .id(message.id + "_text") // 고유 ID로 불필요한 리렌더링 방지
                         
                         // 타이핑 인디케이터
                         if message.isTyping && !message.isTypingComplete {
@@ -383,69 +400,69 @@ struct MessageInputView: View {
     }
 }
 
-struct BotSelectionView: View {
-    @Bindable var store: StoreOf<ChatRoomFeature>
-    
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 16) {
-                    ForEach(store.availableBotTypes, id: \.self) { botType in
-                        Button(action: {
-                            store.send(.botTypeSelected(botType))
-                        }) {
-                            VStack(spacing: 12) {
-                                Image(systemName: botType.iconName)
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.blue)
-                                
-                                Text(botType.displayName)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                Text(botType.description)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(20)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.gray.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(
-                                                store.chatRoom?.botSettings.botType == botType 
-                                                ? Color.blue 
-                                                : Color.clear,
-                                                lineWidth: 2
-                                            )
-                                    )
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle("봇 선택")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("완료") {
-                        store.send(.dismissBotSelection)
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-    }
-}
+//struct BotSelectionView: View {
+//    @Bindable var store: StoreOf<ChatRoomFeature>
+//    
+//    var body: some View {
+//        NavigationStack {
+//            ScrollView {
+//                LazyVGrid(columns: [
+//                    GridItem(.flexible()),
+//                    GridItem(.flexible())
+//                ], spacing: 16) {
+//                    ForEach(store.availableBotTypes, id: \.self) { botType in
+//                        Button(action: {
+//                            store.send(.botTypeSelected(botType))
+//                        }) {
+//                            VStack(spacing: 12) {
+//                                Image(systemName: botType.iconName)
+//                                    .font(.system(size: 40))
+//                                    .foregroundColor(.blue)
+//                                
+//                                Text(botType.displayName)
+//                                    .font(.headline)
+//                                    .foregroundColor(.primary)
+//                                
+//                                Text(botType.description)
+//                                    .font(.caption)
+//                                    .foregroundColor(.secondary)
+//                                    .multilineTextAlignment(.center)
+//                                    .lineLimit(2)
+//                            }
+//                            .frame(maxWidth: .infinity)
+//                            .padding(20)
+//                            .background(
+//                                RoundedRectangle(cornerRadius: 16)
+//                                    .fill(Color.gray.opacity(0.1))
+//                                    .overlay(
+//                                        RoundedRectangle(cornerRadius: 16)
+//                                            .stroke(
+//                                                store.chatRoom?.botSettings.botType == botType 
+//                                                ? Color.blue 
+//                                                : Color.clear,
+//                                                lineWidth: 2
+//                                            )
+//                                    )
+//                            )
+//                        }
+//                        .buttonStyle(PlainButtonStyle())
+//                    }
+//                }
+//                .padding()
+//            }
+//            .navigationTitle("봇 선택")
+//            .navigationBarTitleDisplayMode(.large)
+//            .toolbar {
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    Button("완료") {
+//                        store.send(.dismissBotSelection)
+//                    }
+//                }
+//            }
+//        }
+//        .presentationDetents([.medium, .large])
+//    }
+//}
 
 #Preview {
     ChatRoomView(
